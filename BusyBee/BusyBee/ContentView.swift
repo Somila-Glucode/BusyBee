@@ -1,12 +1,8 @@
 import SwiftUI
-import Combine
 
 struct ContentView: View {
     @State private var city: String = ""
-    
-    @ObservedObject var weatherViewModel = WeatherViewModel()
-    
-    private let weatherService = WeatherService()
+    @StateObject private var weatherViewModel = WeatherViewModel(service: WeatherService())
     
     var body: some View {
         VStack {
@@ -21,19 +17,19 @@ struct ContentView: View {
                     .font(.title)
                     .padding()
                 
-                Text("Temperature: \(weather.main.temp, specifier: "%.1f")°C")
+                Text(weatherViewModel.temperatureText)
                     .font(.headline)
                     .padding()
                 
                 Text(weather.weather.first?.description.capitalized ?? "")
                     .font(.subheadline)
                 
-                Text("Sunrise: \(Date(timeIntervalSince1970: TimeInterval(weather.sys.sunrise)), format: .dateTime.hour().minute())")
-                    .font(.title)
+                Text(weatherViewModel.sunriseText)
+                    .font(.headline)
                     .padding()
                 
-                Text("Sunset: \(Date(timeIntervalSince1970: TimeInterval(weather.sys.sunset)), format: .dateTime.hour().minute())")
-                    .font(.title)
+                Text(weatherViewModel.sunsetText)
+                    .font(.headline)
                     .padding()
             }
         }
