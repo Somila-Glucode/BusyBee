@@ -1,11 +1,17 @@
 import SwiftUI
 
 struct HomeUI: View {
+    @Environment(\.theme) private var theme
+    
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                VStack(spacing: 16) {
+                theme.backgroundColor
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 20) {
                     Greeting()
+                        .padding(.top, 25)
                     WeatherCard()
                     OverviewView()
                     Spacer()
@@ -20,26 +26,27 @@ struct HomeUI: View {
 
 struct OverviewView: View {
     @State private var searchText = ""
+    @Environment(\.theme) private var theme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 19) {
             Text("OVERVIEW")
                 .font(.subheadline)
-                .foregroundStyle(.gray)
+                .foregroundStyle(.black.opacity(0.6))
             
             HStack(spacing: 12) {
-                OverviewCard(icon: "play.fill", count: 12, label: "Today", color: .blue)
-                OverviewCard(icon: "person.crop.circle.badge.ellipsis", count: 12, label: "Upcoming", color: .blue)
-                OverviewCard(icon: "play.fill", count: 3, label: "Overdue", color: .blue)
+                OverviewCard(icon: "calendar", count: 12, label: "Today", color: theme.textColor)
+                OverviewCard(icon: "clock", count: 12, label: "Next", color: theme.textColor)
+                OverviewCard(icon: "exclamationmark.triangle", count: 3, label: "Late", color: theme.textColor)
             }
             
             Text("ITEMS")
                 .font(.subheadline)
-                .foregroundStyle(.gray)
+                .foregroundStyle(.black.opacity(0.6))
             
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(theme.textColor)
                 
                 TextField("Search items", text: $searchText)
                     .textFieldStyle(.plain)
@@ -57,7 +64,7 @@ struct OverviewView: View {
                         ListItemUI(name: "Bench press", dueDate: "Tomorrow"),
                         ListItemUI(name: "Dead lift", dueDate: "Friday")
                     ],
-                    cardColor: Color.blue
+                    cardColor: theme.primaryColor
                 )
                 ListCard(
                     title: "Study",
@@ -66,7 +73,7 @@ struct OverviewView: View {
                         ListItemUI(name: "Read notes", dueDate: "Today"),
                         ListItemUI(name: "Practice quiz", dueDate: "Thursday")
                     ],
-                    cardColor: Color.blue
+                    cardColor: theme.primaryColor
                 )
             }
         }
@@ -80,40 +87,58 @@ struct OverviewCard: View {
     let label: String
     let color: Color
     
+    @Environment(\.theme) private var theme
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.containerText)
             
             Text("3")
                 .font(.system(size: 32, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(theme.containerText)
             
             Text(label)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(theme.containerText.opacity(0.9))
             
             Spacer()
         }
         .padding(16)
         .frame(width: 110, height: 118, alignment: .topLeading)
-        .background(color)
+        .background(theme.primaryColor)
         .cornerRadius(12)
     }
     
 }
 
 struct Greeting: View {
+    @Environment(\.theme) private var theme
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("Good Afternoon, Somila")
-                .font(.title3).bold()
-                .foregroundStyle(.black)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Good Afternoon, Somila")
+                    .font(.title3).bold()
+                    .foregroundStyle(theme.textColor)
+                
+                Text(Date().formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(Locale(identifier: "en_GB"))))
+                    .font(.caption)
+                    .foregroundStyle(theme.textColor.opacity(0.7))
+            }
             
-            Text(Date().formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(Locale(identifier: "en_GB"))))
-                .font(.caption)
-                .foregroundStyle(.black.opacity(0.7))
+            Spacer()
+            
+            Menu {
+                Button("Settings", systemImage: "gearshape") {}
+                Button("All Lists", systemImage: "pencil") {}
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(theme.primaryColor)
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)
@@ -121,14 +146,15 @@ struct Greeting: View {
 }
 
 struct AddButton: View {
+    @Environment(\.theme) private var theme
     var body: some View {
         Button(action: {}) {
             Image(systemName: "plus")
                 .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(theme.containerText)
         }
         .padding(16)
-        .background(Color.blue)
+        .background(theme.primaryColor)
         .cornerRadius(12)
     }
 }
@@ -140,6 +166,7 @@ struct ListCard: View {
     let cardColor: Color
     
     @State private var isExpanded = false
+    @Environment(\.theme) private var theme
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -152,18 +179,18 @@ struct ListCard: View {
                     Text(emoji)
                         .font(.title3)
                         .frame(width: 36, height: 36)
-                        .background(.white)
+                        .background(Color.white)
                         .cornerRadius(8)
                     
                     Text(title)
                         .font(.headline).bold()
-                        .foregroundStyle(.white)
+                        .foregroundStyle(theme.containerText)
                     
                     Spacer()
                     
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption.bold())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(theme.containerText)
                 }
             }
             .buttonStyle(.plain)
@@ -174,13 +201,13 @@ struct ListCard: View {
                         HStack {
                             Text(item.name)
                                 .font(.subheadline.bold())
-                                .foregroundStyle(.white)
+                                .foregroundStyle(theme.containerText)
                             
                             Spacer()
                             
                             Text(item.dueDate)
                                 .font(.caption)
-                                .foregroundStyle(.white.opacity(0.8))
+                                .foregroundStyle(theme.containerText.opacity(0.8))
                         }
                     }
                 }
@@ -190,7 +217,7 @@ struct ListCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(16)
-        .background(cardColor)
+        .background(theme.primaryColor)
         .cornerRadius(12)
     }
 }
@@ -201,6 +228,7 @@ struct ListItemUI {
 }
 
 struct WeatherCard: View {
+    @Environment(\.theme) private var theme
     let location = "London"
     let temperature = 20
     let condition = "Cloudy"
@@ -213,28 +241,26 @@ struct WeatherCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(location)
                         .font(.title3).bold()
-                        .foregroundStyle(.white)
+                        .foregroundStyle(theme.containerText)
                     
                     Text(condition)
                         .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(theme.containerText.opacity(0.8))
                 }
                 
                 Spacer()
                 
                 Text("\(temperature)°C")
                     .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(theme.containerText)
             }
             
-            Divider()
-                .background(.white.opacity(0.5))
             
             WeatherSYSCard(sunrise: sunrise, sunset: sunset)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.blue)
+        .background(theme.primaryColor)
         .cornerRadius(12)
         .padding(.horizontal)
     }
@@ -254,6 +280,7 @@ struct WeatherSYSCard: View {
 }
 
 struct WeatherSysItem: View {
+    @Environment(\.theme) private var theme
     let image: String
     let title: String
     let time: String
@@ -262,16 +289,16 @@ struct WeatherSysItem: View {
         HStack(spacing: 8) {
             Image(systemName: image)
                 .font(.title3)
-                .foregroundStyle(.white)
+                .foregroundStyle(theme.containerText)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(theme.containerText.opacity(0.8))
                 
                 Text(time)
                     .font(.caption.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(theme.containerText)
             }
         }
     }
