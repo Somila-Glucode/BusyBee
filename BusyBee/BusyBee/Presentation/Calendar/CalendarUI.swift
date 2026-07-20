@@ -17,18 +17,21 @@ struct CalendarUI: View {
             ScrollView {
                 
                 HStack(alignment: .top) {
+
                     Spacer()
                     
                     VStack(spacing: 2) {
                         Text("Calendar")
                             .font(.largeTitle.bold())
                             .foregroundStyle(theme.textColor)
+                        
                     }
                     
                     Spacer()
                 }
+                .frame(maxWidth: .infinity)
                 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 20) {
                   
                     
                     DatePicker(
@@ -38,9 +41,10 @@ struct CalendarUI: View {
                     )
                     .datePickerStyle(.graphical)
                     .tint(theme.containerText)
+                    .environment(\.colorScheme, .dark)
                     .padding(.horizontal)
                     .padding(12)
-                    .background(theme.primaryColor.opacity(0.3))
+                    .background(theme.primaryColor)
                     .cornerRadius(12)
                     .padding(.horizontal)
                     
@@ -54,14 +58,14 @@ struct CalendarUI: View {
                             HStack {
                                 Text(item.name)
                                     .font(.subheadline.bold())
-                                    .foregroundStyle(theme.textColor)
+                                    .foregroundStyle(theme.containerText)
                                 Spacer()
                                 Text(item.dueDate)
                                     .font(.caption)
-                                    .foregroundStyle(theme.textColor.opacity(0.6))
+                                    .foregroundStyle(theme.containerText.opacity(0.6))
                             }
                             .padding(12)
-                            .background(theme.primaryColor.opacity(0.3))
+                            .background(theme.primaryColor)
                             .cornerRadius(12)
                         }
                     }

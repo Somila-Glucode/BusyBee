@@ -16,6 +16,7 @@ protocol ThemeProtocol {
     var primaryColor: Color { get }
     var containerText: Color { get }
     var textColor: Color { get }
+    var colorScheme: ColorScheme { get }
 }
 
 struct LightTheme: ThemeProtocol {
@@ -23,6 +24,7 @@ struct LightTheme: ThemeProtocol {
     let primaryColor: Color = .blue
     let containerText: Color = .white
     let textColor = Color.black
+    let colorScheme: ColorScheme = .light
 }
 
 struct DarkTheme: ThemeProtocol {
@@ -30,5 +32,6 @@ struct DarkTheme: ThemeProtocol {
     let primaryColor: Color = .blue
     let containerText: Color = .white
     let textColor = Color.white
+    let colorScheme: ColorScheme = .dark
 }
 

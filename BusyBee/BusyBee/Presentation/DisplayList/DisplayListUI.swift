@@ -38,10 +38,7 @@ struct DisplayListUI: View {
                         items: [
                             FullListItemUI(name: "Pushups", dueDate: "Today"),
                             FullListItemUI(name: "Bench press", dueDate: "Tomorrow"),
-                            FullListItemUI(name: "Dead lift", dueDate: "Friday"),
-                            FullListItemUI(name: "Pushups", dueDate: "Today"),
-                            FullListItemUI(name: "Bench press", dueDate: "Tomorrow"),
-                            FullListItemUI(name: "Dead lift", dueDate: "Friday")
+                           
                         ],
                         cardColor: theme.primaryColor
                     )
