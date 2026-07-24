@@ -8,7 +8,11 @@ class ToDoListViewModel: ObservableObject {
     func addList(name: String, description: String, icon: String, context: ModelContext) {
         let newList = ToDoList(name: name, listDescription: description, icon: icon)
         context.insert(newList)
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            print("Failed to save list: \(error)")
+        }
     }
     
     func addItem(name: String, dueDate: Date, to list: ToDoList, context: ModelContext) {
@@ -18,8 +22,6 @@ class ToDoListViewModel: ObservableObject {
         context.insert(newItem)
         try? context.save()
     }
-    
-    
     
     func toggleCompletion(_ item: ToDoItem, context: ModelContext) {
         item.isCompleted.toggle()

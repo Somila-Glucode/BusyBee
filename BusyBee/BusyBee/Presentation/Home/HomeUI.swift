@@ -1,13 +1,13 @@
 import SwiftUI
+import SwiftData
+internal import _LocationEssentials
 
 struct HomeUI: View {
-    @Environment(\.theme) private var theme
     
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                theme.backgroundColor
-                    .ignoresSafeArea()
+                
                 
                 VStack(spacing: 20) {
                     Greeting()
@@ -17,8 +17,7 @@ struct HomeUI: View {
                     Spacer()
                 }
                 
-                AddButton()
-                    .padding()
+                
             }
         }
     }
@@ -26,27 +25,87 @@ struct HomeUI: View {
 
 struct OverviewView: View {
     @State private var searchText = ""
-    @Environment(\.theme) private var theme
+    @Query(sort: \ToDoItem.dueDate) private var allItems: [ToDoItem]
+    @Query(sort: \ToDoList.createdAt) private var lists: [ToDoList]
+    @StateObject private var viewModel = ToDoListViewModel()
+    @Environment(\.modelContext) private var modelContext
+    
+    var todayItems: [ToDoItem] {
+        allItems.filter { Calendar.current.isDate($0.dueDate, inSameDayAs: .now) }
+    }
+    
+    var filteredLists: [ToDoList] {
+        searchText.isEmpty ? lists : lists.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText)
+        }
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 19) {
-            Text("OVERVIEW")
-                .font(.subheadline)
-                .foregroundStyle(.black.opacity(0.6))
             
-            HStack(spacing: 12) {
-                OverviewCard(icon: "calendar", count: 12, label: "Today", color: theme.textColor)
-                OverviewCard(icon: "clock", count: 12, label: "Next", color: theme.textColor)
-                OverviewCard(icon: "exclamationmark.triangle", count: 3, label: "Late", color: theme.textColor)
+            HStack {
+                Text("TODAY")
+                    .font(.subheadline)
+                    .foregroundStyle(.gray)
+                
+                if !todayItems.isEmpty {
+                    Text("\(todayItems.count)")
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                        .frame(width: 20, height: 20)
+                        .background(Color("primaryColor"))
+                        .clipShape(Circle())
+                }
+            }
+            
+            if todayItems.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.title2)
+                        .foregroundStyle(Color("primaryColor").opacity(0.5))
+                    
+                    Text("Nothing due today")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.gray)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(todayItems) { item in
+                        HStack(spacing: 12) {
+                            Text(item.list?.icon ?? "📋")
+                                .font(.title2)
+                                .frame(width: 44, height: 44)
+                                .background(Color.white)
+                                .cornerRadius(10)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                        Text(item.name)
+                                            .font(.headline.weight(.semibold))
+                                            .foregroundStyle(.white)
+                                            .lineLimit(1)
+
+                                        Text(item.list?.name ?? "")
+                                            .font(.caption)
+                                            .foregroundStyle(.white.opacity(0.7))
+                                    }
+                            Spacer()
+                        }
+                        .padding(12)
+                        .background(Color("primaryColor"))
+                        .cornerRadius(12)
+                    }
+                }
             }
             
             Text("ITEMS")
                 .font(.subheadline)
-                .foregroundStyle(.black.opacity(0.6))
+                .foregroundStyle(.gray)
             
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(theme.textColor)
+                    .foregroundStyle(.gray)
                 
                 TextField("Search items", text: $searchText)
                     .textFieldStyle(.plain)
@@ -55,215 +114,194 @@ struct OverviewView: View {
             .background(Color.gray.opacity(0.12))
             .cornerRadius(12)
             
-            VStack(spacing: 12) {
-                ListCard(
-                    title: "Gym",
-                    emoji: "🏋️",
-                    items: [
-                        ListItemUI(name: "Pushups", dueDate: "Today"),
-                        ListItemUI(name: "Bench press", dueDate: "Tomorrow"),
-                        ListItemUI(name: "Dead lift", dueDate: "Friday")
-                    ],
-                    cardColor: theme.primaryColor
-                )
-                ListCard(
-                    title: "Study",
-                    emoji: "📚",
-                    items: [
-                        ListItemUI(name: "Read notes", dueDate: "Today"),
-                        ListItemUI(name: "Practice quiz", dueDate: "Thursday")
-                    ],
-                    cardColor: theme.primaryColor
-                )
+            if filteredLists.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.title2)
+                        .foregroundStyle(Color("primaryColor").opacity(0.5))
+                    
+                    Text("No lists yet")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.gray)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(filteredLists) { list in
+                        ListCard(list: list)
+                    }
+                }
             }
         }
         .padding(.horizontal)
     }
 }
 
-struct OverviewCard: View {
-    let icon: String
-    let count: Int
-    let label: String
-    let color: Color
-    
-    @Environment(\.theme) private var theme
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(theme.containerText)
-            
-            Text("3")
-                .font(.system(size: 32, weight: .bold))
-                .foregroundStyle(theme.containerText)
-            
-            Text(label)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(theme.containerText.opacity(0.9))
-            
-            Spacer()
-        }
-        .padding(16)
-        .frame(width: 110, height: 118, alignment: .topLeading)
-        .background(theme.primaryColor)
-        .cornerRadius(12)
-    }
-    
-}
-
 struct Greeting: View {
-    @Environment(\.theme) private var theme
+    @Environment(\.modelContext) private var modelContext
+    @StateObject private var viewModel = HomeViewModel()
+    
+    @State private var showAllLists = false
+    @State private var showCalendar = false
+    @State private var showCreateItem = false
+    
     var body: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Good Afternoon, Somila")
+                Text("\(viewModel.greetingTime())")
                     .font(.title3).bold()
-                    .foregroundStyle(theme.textColor)
+                    .foregroundStyle(Color("textColor"))
                 
-                Text(Date().formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(Locale(identifier: "en_GB"))))
+                Text("\(viewModel.formattedDate)")
                     .font(.caption)
-                    .foregroundStyle(theme.textColor.opacity(0.7))
+                    .foregroundStyle(Color("textColor").opacity(0.7))
             }
+            
             
             Spacer()
             
             Menu {
-                Button("Settings", systemImage: "gearshape") {}
-                Button("All Lists", systemImage: "pencil") {}
-                Button("Calendar", systemImage: "calendar") {}
+                Button("All Lists", systemImage: "pencil") {
+                    showAllLists = true
+                }
+                Button("Calendar", systemImage: "calendar") {
+                    showCalendar = true
+                }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(theme.primaryColor)
+                    .foregroundStyle(Color("textColor"))
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+            }
+            
+            Button {
+                showCreateItem = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Color("textColor"))
                     .frame(width: 32, height: 32)
                     .contentShape(Rectangle())
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)
-    }
-}
-
-struct AddButton: View {
-    @Environment(\.theme) private var theme
-    var body: some View {
-        Button(action: {}) {
-            Image(systemName: "plus")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(theme.containerText)
+        .fullScreenCover(isPresented: $showAllLists) {
+            DisplayListUI()
         }
-        .padding(16)
-        .background(theme.primaryColor)
-        .cornerRadius(12)
+        .fullScreenCover(isPresented: $showCalendar) {
+            CalendarUI()
+        }
+        .fullScreenCover(isPresented: $showCreateItem) {
+            CreateItemUI()
+        }
     }
 }
 
 struct ListCard: View {
-    let title: String
-    let emoji: String
-    let items: [ListItemUI]
-    let cardColor: Color
+    let list: ToDoList
     
-    @State private var isExpanded = false
-    @Environment(\.theme) private var theme
+    var completedCount: Int {
+        list.items.filter(\.isCompleted).count
+    }
+    
+    var progress: Double {
+        list.items.isEmpty ? 0 : Double(completedCount) / Double(list.items.count)
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button {
-                withAnimation(.spring()) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 10) {
-                    Text(emoji)
-                        .font(.title3)
-                        .frame(width: 36, height: 36)
-                        .background(Color.white)
-                        .cornerRadius(8)
-                    
-                    Text(title)
-                        .font(.headline).bold()
-                        .foregroundStyle(theme.containerText)
-                    
-                    Spacer()
-                    
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption.bold())
-                        .foregroundStyle(theme.containerText)
-                }
-            }
-            .buttonStyle(.plain)
+        HStack(alignment: .center, spacing: 14) {
+            Text(list.icon)
+                .font(.title2)
+                .frame(width: 44, height: 44)
+                .background(Color.white)
+                .cornerRadius(10)
             
-            if isExpanded {
-                VStack(spacing: 10) {
-                    ForEach(items, id: \.name) { item in
-                        HStack {
-                            Text(item.name)
-                                .font(.subheadline.bold())
-                                .foregroundStyle(theme.containerText)
-                            
-                            Spacer()
-                            
-                            Text(item.dueDate)
-                                .font(.caption)
-                                .foregroundStyle(theme.containerText.opacity(0.8))
-                        }
-                    }
-                }
-                .padding(.top, 4)
-                .transition(.move(edge: .top).combined(with: .opacity))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(list.name)
+                    .font(.headline).bold()
+                    .foregroundStyle(Color("containerText"))
+                
+                Text(list.listDescription)
+                    .font(.caption)
+                    .foregroundStyle(Color("containerText"))
+                    .lineLimit(5)
+                
+                Text("\(completedCount) of \(list.items.count) items completed")
+                    .font(.caption2)
+                    .foregroundStyle(Color("containerText"))
             }
+            
+            Spacer(minLength: 12)
+            
+            Gauge(value: progress) {
+                Text("")
+            }
+            .gaugeStyle(.accessoryCircularCapacity)
+            .tint(Color("containerText"))
+            .frame(width: 36, height: 36)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(16)
-        .background(theme.primaryColor)
+        .padding(.trailing, 4)
+        .frame(maxWidth: .infinity)
+        .background(Color("primaryColor"))
         .cornerRadius(12)
     }
 }
 
-struct ListItemUI {
-    let name: String
-    let dueDate: String
-}
-
 struct WeatherCard: View {
-    @Environment(\.theme) private var theme
-    let location = "London"
-    let temperature = 20
-    let condition = "Cloudy"
-    let sunrise = "07:00"
-    let sunset = "18:00"
+    
+    @StateObject private var weatherViewModel = WeatherViewModel(service: WeatherService())
+    @StateObject private var locationManager = LocationManager()
+    
+    let fallbackCity = "Johannesburg"
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(location)
+                    Text(weatherViewModel.weather?.name ?? fallbackCity)
                         .font(.title3).bold()
-                        .foregroundStyle(theme.containerText)
+                        .foregroundStyle(Color("containerText"))
                     
-                    Text(condition)
+                    Text(weatherViewModel.conditionText)
                         .font(.subheadline)
-                        .foregroundStyle(theme.containerText.opacity(0.8))
+                        .foregroundStyle(Color("containerText").opacity(0.8))
                 }
                 
                 Spacer()
                 
-                Text("\(temperature)°C")
+                Text(weatherViewModel.temperatureText)
                     .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(theme.containerText)
+                    .foregroundStyle(Color("containerText"))
             }
             
-            
-            WeatherSYSCard(sunrise: sunrise, sunset: sunset)
+            WeatherSYSCard(sunrise: weatherViewModel.sunriseText, sunset: weatherViewModel.sunsetText)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.primaryColor)
+        .background(
+            LinearGradient(
+                colors: weatherViewModel.backgroundGradientColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .animation(.easeInOut(duration: 1), value: weatherViewModel.backgroundGradientColors)
+        )
         .cornerRadius(12)
         .padding(.horizontal)
+        .task {
+            locationManager.checkLocationAuthorization()
+        }
+        .onChange(of: locationManager.lastKnownLocation?.latitude) { _, _ in
+            if let coordinate = locationManager.lastKnownLocation {
+                weatherViewModel.fetchWeather(lat: coordinate.latitude, lon: coordinate.longitude)
+            } else {
+                weatherViewModel.fetchWeather(city: fallbackCity)
+            }
+        }
     }
 }
 
@@ -281,7 +319,7 @@ struct WeatherSYSCard: View {
 }
 
 struct WeatherSysItem: View {
-    @Environment(\.theme) private var theme
+    
     let image: String
     let title: String
     let time: String
@@ -290,16 +328,16 @@ struct WeatherSysItem: View {
         HStack(spacing: 8) {
             Image(systemName: image)
                 .font(.title3)
-                .foregroundStyle(theme.containerText)
+                .foregroundStyle(Color("containerText"))
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.caption)
-                    .foregroundStyle(theme.containerText.opacity(0.8))
+                    .foregroundStyle(Color("containerText").opacity(0.8))
                 
                 Text(time)
                     .font(.caption.bold())
-                    .foregroundStyle(theme.containerText)
+                    .foregroundStyle(Color("containerText"))
             }
         }
     }

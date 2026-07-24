@@ -1,69 +1,61 @@
 import SwiftUI
+import SwiftData
 
 struct DisplayListUI: View {
-    @Environment(\.theme) private var theme
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \ToDoList.createdAt) private var lists: [ToDoList]
+    @StateObject private var viewModel = ToDoListViewModel()
+    
     @State private var showSearch = false
-    @State private var showAddList = false
+    @State private var searchText = ""
+    
+    var filteredLists: [ToDoList] {
+        searchText.isEmpty ? lists : lists.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText)
+        }
+    }
     
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            theme.backgroundColor
-                .ignoresSafeArea()
-            
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    DisplayListHeader(
-                        showSearch: $showSearch,
-                    )
+                    DisplayListHeader(showSearch: $showSearch, listCount: lists.count)
                     
                     if showSearch {
-                        SearchBar()
+                        SearchBar(searchText: $searchText)
                     }
                     
-                    FullListCard(
-                        title: "Gym",
-                        emoji: "🏋️",
-                        subtitle: "This is the description for the list",
-                        items: [
-                            FullListItemUI(name: "Pushups", dueDate: "Today"),
-                            FullListItemUI(name: "Bench press", dueDate: "Tomorrow"),
-                            FullListItemUI(name: "Dead lift", dueDate: "Friday")
-                        ],
-                        cardColor: theme.primaryColor
-                    )
-                    FullListCard(
-                        title: "Study",
-                        emoji: "📚",
-                        subtitle: "This is the description for the list",
-                        items: [
-                            FullListItemUI(name: "Pushups", dueDate: "Today"),
-                            FullListItemUI(name: "Bench press", dueDate: "Tomorrow"),
-                           
-                        ],
-                        cardColor: theme.primaryColor
-                    )
+                    if filteredLists.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle")
+                                .font(.title2)
+                                .foregroundStyle(Color("primaryColor").opacity(0.5))
+                            
+                            Text(lists.isEmpty ? "No lists yet" : "No matches found")
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.gray)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 500)
+                    } else {
+                        ForEach(filteredLists) { list in
+                            FullListCard(list: list, viewModel: viewModel)
+                        }
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, 16)
                 .padding(.bottom, 80)
             }
-            
-            AddButton()
-                .padding()
-                .onTapGesture {
-                    showAddList = true
-                }
-        }
-        .fullScreenCover(isPresented: $showAddList) {
-            //AddListContent()
         }
     }
 }
 
 struct DisplayListHeader: View {
-    @Environment(\.theme) private var theme
     @Environment(\.dismiss) private var dismiss
     @Binding var showSearch: Bool
+    let listCount: Int
+    @State private var showCreateItem = false
     
     var body: some View {
         HStack(alignment: .top) {
@@ -72,7 +64,7 @@ struct DisplayListHeader: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(theme.textColor)
+                    .foregroundStyle(Color("textColor"))
                     .frame(width: 32, height: 32)
                     .contentShape(Rectangle())
             }
@@ -80,16 +72,26 @@ struct DisplayListHeader: View {
             Spacer()
             
             VStack(spacing: 2) {
-                Text("My Lists")
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(theme.textColor)
+                Text("All Lists")
+                    .font(.title.bold())
+                    .foregroundStyle(Color("textColor"))
                 
-                Text("2 lists")
+                Text("\(listCount) list\(listCount == 1 ? "" : "s")")
                     .font(.subheadline)
-                    .foregroundStyle(theme.textColor.opacity(0.6))
+                    .foregroundStyle(Color("textColor").opacity(0.6))
             }
             
             Spacer()
+            
+            Button {
+                showCreateItem = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Color("textColor"))
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+            }
             
             Button {
                 withAnimation(.spring()) {
@@ -98,17 +100,20 @@ struct DisplayListHeader: View {
             } label: {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(theme.textColor)
+                    .foregroundStyle(Color("textColor"))
                     .frame(width: 32, height: 32)
                     .contentShape(Rectangle())
             }
         }
         .frame(maxWidth: .infinity)
+        .fullScreenCover(isPresented: $showCreateItem) {
+            CreateItemUI()
+        }
     }
 }
 
 struct SearchBar: View {
-    @State private var searchText = ""
+    @Binding var searchText: String
     
     var body: some View {
         HStack(spacing: 8) {
@@ -126,143 +131,151 @@ struct SearchBar: View {
 }
 
 struct FullListCard: View {
-    let title: String
-    let emoji: String
-    let subtitle: String
-    let cardColor: Color
+    let list: ToDoList
+    let viewModel: ToDoListViewModel
     
-    @State private var items: [FullListItemUI]
-    @Environment(\.theme) private var theme
+    @Environment(\.modelContext) private var modelContext
     
-    init(title: String, emoji: String, subtitle: String, items: [FullListItemUI], cardColor: Color) {
-        self.title = title
-        self.emoji = emoji
-        self.subtitle = subtitle
-        self.cardColor = cardColor
-        self._items = State(initialValue: items)
+    private var activeItems: [ToDoItem] {
+        list.items.filter { !$0.isCompleted }
     }
     
-    private var activeItems: [FullListItemUI] {
-        items.filter { !$0.isCompleted }
+    private var completedItems: [ToDoItem] {
+        list.items.filter { $0.isCompleted }
     }
     
-    private var completedItems: [FullListItemUI] {
-        items.filter { $0.isCompleted }
+    private var progress: Double {
+        list.items.isEmpty ? 0 : Double(completedItems.count) / Double(list.items.count)
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 18) {
             
-            HStack(spacing: 12) {
-                Text(emoji)
-                    .font(.largeTitle)
-                    .frame(width: 56, height: 56)
-                    .background(theme.containerText)
-                    .cornerRadius(10)
+            HStack(spacing: 14) {
+                Text(list.icon)
+                    .font(.title2)
+                    .frame(width: 48, height: 48)
+                    .background(Color("containerText"))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.title2.bold())
-                        .foregroundStyle(theme.containerText)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(list.name)
+                        .font(.title3.bold())
+                        .foregroundStyle(Color("containerText"))
                     
-                    Text(subtitle)
+                    Text(list.listDescription)
                         .font(.caption)
-                        .foregroundStyle(theme.containerText.opacity(0.8))
-                        .lineLimit(5)
+                        .foregroundStyle(Color("containerText").opacity(0.7))
+                        .lineLimit(2)
                 }
                 
-                Spacer()
+                Spacer(minLength: 12)
                 
-                DeleteList()
+                Menu {
+                    Button(role: .destructive) {
+                        viewModel.deleteList(list, context: modelContext)
+                    } label: {
+                        Label("Delete List", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color("containerText").opacity(0.7))
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
             }
             
-            VStack(spacing: 10) {
-                ForEach(activeItems) { item in
-                    itemRow(item)
+            if !activeItems.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(activeItems) { item in
+                        itemRow(item)
+                    }
                 }
             }
             
             if !completedItems.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("COMPLETED")
-                        .font(.caption.bold())
-                        .foregroundStyle(theme.containerText.opacity(0.6))
-                        .padding(.top, 4)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Rectangle()
+                            .fill(Color("containerText").opacity(0.15))
+                            .frame(height: 1)
+                        
+                        Text("COMPLETED")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color("containerText").opacity(0.5))
+                            .fixedSize()
+                        
+                        Rectangle()
+                            .fill(Color("containerText").opacity(0.15))
+                            .frame(height: 1)
+                    }
+                    .padding(.vertical, 2)
                     
                     ForEach(completedItems) { item in
                         itemRow(item)
                     }
                 }
             }
+            
+            if list.items.isEmpty {
+                Text("No items yet")
+                    .font(.subheadline)
+                    .foregroundStyle(Color("containerText").opacity(0.5))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            }
         }
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(theme.primaryColor)
-        .cornerRadius(12)
+        .background(Color("primaryColor"))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color("primaryColor").opacity(0.25), radius: 12, y: 6)
     }
     
-    private func itemRow(_ item: FullListItemUI) -> some View {
-        HStack(alignment: .top, spacing: 6) {
-            VStack(alignment: .leading, spacing: 2) {
+    private func itemRow(_ item: ToDoItem) -> some View {
+        HStack(spacing: 10) {
+            Button {
+                withAnimation(.spring(response: 0.3)) {
+                    viewModel.toggleCompletion(item, context: modelContext)
+                }
+            } label: {
+                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(item.isCompleted ? .green : Color("containerText").opacity(0.5))
+            }
+            
+            VStack(alignment: .leading, spacing: 1) {
                 Text(item.name)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.white)
-                    .strikethrough(item.isCompleted)
-                    .opacity(item.isCompleted ? 0.6 : 1)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color("containerText").opacity(item.isCompleted ? 0.5 : 1))
+                    .strikethrough(item.isCompleted, color: Color("containerText").opacity(0.5))
                 
-                Text(item.dueDate)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                Text(item.dueDate.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption2)
+                    .foregroundStyle(Color("containerText").opacity(0.5))
             }
             
             Spacer(minLength: 8)
             
             Button {
-                withAnimation(.spring()) {
-                    if let index = items.firstIndex(where: { $0.id == item.id }) {
-                        items[index].isCompleted.toggle()
-                    }
+                withAnimation(.spring(response: 0.3)) {
+                    viewModel.deleteItem(item, context: modelContext)
                 }
             } label: {
-                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(.green)
-            }
-            
-            Button {
-                withAnimation(.spring()) {
-                    items.removeAll { $0.id == item.id }
-                }
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.white.opacity(0.7))
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color("containerText").opacity(0.35))
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
             }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color("containerText").opacity(0.2))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
-
-struct DeleteList: View {
-    @State private var isDelete: Bool = false
-    @Environment(\.theme) private var theme
-    var body: some View {
-        Button(action: {
-            isDelete.toggle()
-        }) {
-            Image(systemName: "trash")
-                .foregroundColor(.red)
-                .frame(width: 36, height: 36)
-                .background(theme.containerText)
-                .cornerRadius(12)
-        }
-    }
-}
-
-struct FullListItemUI: Identifiable {
-    let id = UUID()
-    let name: String
-    let dueDate: String
-    var isCompleted: Bool = false
-}
-
 #Preview {
     DisplayListUI()
 }

@@ -1,21 +1,23 @@
 import SwiftUI
-
-@Observable
-class AppSettings {
-    var isDarkMode = false
-}
+import SwiftData
 
 @main
 struct BusyBeeApp: App {
-    @State private var settings = AppSettings()
+    
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
     var body: some Scene {
-        let currentTheme: ThemeProtocol = settings.isDarkMode ? DarkTheme() : LightTheme()
         
         WindowGroup {
-            ContentView()
-                .environment(settings)
-                .environment(\.theme, currentTheme)
+            Group {
+                if hasCompletedOnboarding {
+                    ContentView()
+                } else {
+                    OnboardingUI()
+                }
+            }
         }
+        .modelContainer(for: [ToDoList.self, ToDoItem.self])
     }
 }
+

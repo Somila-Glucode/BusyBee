@@ -10,10 +10,11 @@ struct CreateItemUI: View {
     }
     
     struct ItemForm: View {
-        @Environment(\.theme) private var theme
+        
         @Environment(\.modelContext) private var modelContext
         @Query private var lists: [ToDoList]
         @StateObject private var viewModel = ToDoListViewModel()
+        @Environment(\.dismiss) private var dismiss
         
         @State private var itemName: String = ""
         @State private var date: Date = .init()
@@ -24,29 +25,29 @@ struct CreateItemUI: View {
                 VStack(alignment: .leading, spacing: 19) {
                     
                     Text("ITEM NAME")
-                    .font(.subheadline)
-                    .foregroundStyle(.gray)
+                        .font(.subheadline)
+                        .foregroundStyle(.gray)
                     
-                    TextField(text: $itemName, prompt: Text("e.g. Bench press").foregroundStyle(theme.containerText)) {
-                                           Text("Item Name")
-                                       }
-                                       .foregroundStyle(theme.containerText)
-                                       .padding(12)
-                                       .background(theme.primaryColor)
-                                       .cornerRadius(12)
+                    TextField(text: $itemName, prompt: Text("e.g. Bench press").foregroundStyle(Color("containerText"))) {
+                        Text("Item Name")
+                    }
+                    .foregroundStyle(Color("containerText"))
+                    .padding(12)
+                    .background(Color("primaryColor"))
+                    .cornerRadius(12)
                     
                     Text("FINISH DATE")
-                                           .font(.subheadline)
-                                           .foregroundStyle(.gray)
-                                       
-                                       DatePicker("Date", selection: $date, displayedComponents: .date)
-                                           .datePickerStyle(.graphical)
-                                           .tint(theme.containerText)
-                                           .environment(\.colorScheme, .dark)
-                                           .padding(8)
-                                           .frame(maxWidth: .infinity)
-                                           .background(theme.primaryColor)
-                                           .cornerRadius(12)
+                        .font(.subheadline)
+                        .foregroundStyle(.gray)
+                    
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .tint(Color("containerText"))
+                        .environment(\.colorScheme, .dark)
+                        .padding(8)
+                        .frame(maxWidth: .infinity)
+                        .background(Color("primaryColor"))
+                        .cornerRadius(12)
                     
                     Text("LIST")
                         .font(.subheadline)
@@ -62,11 +63,11 @@ struct CreateItemUI: View {
                         } label: {
                             HStack {
                                 Text(selectedList?.name ?? "Choose a list")
-                                    .foregroundStyle(theme.containerText)
+                                    .foregroundStyle(Color("containerText"))
                                 Spacer()
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.caption)
-                                    .foregroundStyle(theme.containerText)
+                                    .foregroundStyle(Color("containerText"))
                             }
                         }
                         
@@ -75,13 +76,15 @@ struct CreateItemUI: View {
                         AddListSheet()
                     }
                     .padding(12)
-                    .background(theme.primaryColor)
+                    .background(Color("primaryColor"))
                     .cornerRadius(12)
                     
                     Button(action: {
                         guard let selectedList else { return }
                         viewModel.addItem(name: itemName, dueDate: date, to: selectedList, context: modelContext)
                         itemName = ""
+                        
+                        dismiss()
                     }) {
                         Text("Save")
                             .font(.system(size: 16, weight: .bold))
@@ -89,7 +92,7 @@ struct CreateItemUI: View {
                             .frame(maxWidth: .infinity)
                     }
                     .padding(16)
-                    .background(theme.primaryColor)
+                    .background(Color("primaryColor"))
                     .cornerRadius(12)
                     .padding(.top, 8)
                 }
@@ -98,26 +101,31 @@ struct CreateItemUI: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
                 ToolbarItem(placement: .principal) {
                     Text("New Item")
                         .font(.headline)
-                        .foregroundStyle(theme.textColor)
+                        .foregroundStyle(Color("textColor"))
                 }
             }
         }
     }
     
     struct AddListSheet: View {
-        @Environment(\.theme) private var theme
+        
         @State private var showCover = false
         
         var body: some View {
             Button(action: { showCover = true }) {
                 HStack(spacing: 6) {
                     Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(theme.containerText)
+                        .foregroundStyle(Color("containerText"))
                     Text("Add List")
-                        .foregroundStyle(theme.containerText)
+                        .foregroundStyle(Color("containerText"))
                         .font(.subheadline.bold())
                 }
             }
@@ -129,7 +137,6 @@ struct CreateItemUI: View {
     
     struct AddListSheetContent: View {
         @Environment(\.dismiss) private var dismiss
-        @Environment(\.theme) private var theme
         @Environment(\.modelContext) private var modelContext
         @StateObject private var viewModel = ToDoListViewModel()
         
@@ -142,40 +149,43 @@ struct CreateItemUI: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 19) {
                         
-            Text("ICON")
-            .font(.subheadline)
-            .foregroundStyle(.gray)
-                                            
-            TextField(text: $icon, prompt: Text("🏋️").foregroundStyle(theme.containerText)) {Text("Icon")}
-            .multilineTextAlignment(.center)
-            .foregroundStyle(theme.containerText)
-            .padding(12)
-            .frame(width: 56)
-            .background(theme.primaryColor)
-            .cornerRadius(12)
-            .onChange(of: icon) { _, newValue in if let last = newValue.last {icon = String(last)}}
+                        Text("ICON")
+                            .font(.subheadline)
+                            .foregroundStyle(.gray)
                         
-            Text("LIST NAME")
-            .font(.subheadline)
-            .foregroundStyle(.gray)
-                                               
-            TextField(text: $listName, prompt: Text("e.g. Gym").foregroundStyle(theme.containerText)) {
-            Text("List Name")
-            }
-            .foregroundStyle(theme.containerText)
-            .padding(12)
-            .background(theme.primaryColor)
-            .cornerRadius(12)
+                        TextField(text: $icon, prompt: Text("🏋️").foregroundStyle(Color("containerText"))) {Text("Icon")}
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(Color("containerText"))
+                            .padding(12)
+                            .frame(width: 56)
+                            .background(Color("primaryColor"))
+                            .cornerRadius(12)
+                            .onChange(of: icon) { _, newValue in if let last = newValue.last {icon = String(last)}}
                         
-            Text("DESCRIPTION")
-            .font(.subheadline)
-            .foregroundStyle(.gray)
-                                              
-            TextEditor(text: $listDescription)
-            .frame(height: 120)
-            .padding(8)
-            .background(theme.primaryColor.opacity(0.12))
-            .cornerRadius(12)
+                        Text("LIST NAME")
+                            .font(.subheadline)
+                            .foregroundStyle(.gray)
+                        
+                        TextField(text: $listName, prompt: Text("e.g. Gym").foregroundStyle(Color("containerText"))) {
+                            Text("List Name")
+                        }
+                        .foregroundStyle(Color("containerText"))
+                        .padding(12)
+                        .background(Color("primaryColor"))
+                        .cornerRadius(12)
+                        
+                        Text("DESCRIPTION")
+                            .font(.subheadline)
+                            .foregroundStyle(.gray)
+                        
+                        TextField(text: $listDescription, prompt: Text("e.g. This is a list containing your gym items").foregroundStyle(Color("containerText"))) {
+                            Text("Item Name")
+                        }
+                        .frame(height: 120)
+                        .foregroundStyle(Color("containerText"))
+                        .padding(12)
+                        .background(Color("primaryColor"))
+                        .cornerRadius(12)
                         
                         Button(action: {
                             viewModel.addList(
@@ -192,7 +202,7 @@ struct CreateItemUI: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .padding(16)
-                        .background(theme.primaryColor)
+                        .background(Color("primaryColor"))
                         .cornerRadius(12)
                         .padding(.top, 8)
                     }
@@ -209,12 +219,13 @@ struct CreateItemUI: View {
                     ToolbarItem(placement: .principal) {
                         Text("Add List")
                             .font(.headline)
-                            .foregroundStyle(theme.textColor)
+                            .foregroundStyle(Color("textColor"))
                     }
                 }
             }
         }
     }
+    
 }
 
 

@@ -18,4 +18,14 @@ class WeatherService {
             .decode(type: WeatherResponse.self, decoder: JSONDecoder())
             .eraseToAnyPublisher()
     }
+    
+    func getWeather(lat: Double, lon: Double) -> AnyPublisher<WeatherResponse, Error> {
+        guard let url = URL(string: "\(baseURL)?lat=\(lat)&lon=\(lon)&appid=\(APIKEY.key)&units=metric") else {
+            fatalError("Invalid URL")
+        }
+        return URLSession.shared.dataTaskPublisher(for: url)
+            .map { $0.data }
+            .decode(type: WeatherResponse.self, decoder: JSONDecoder())
+            .eraseToAnyPublisher()
+    }
 }
