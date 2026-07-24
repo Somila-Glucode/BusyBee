@@ -188,6 +188,11 @@ struct CreateItemUI: View {
                         .cornerRadius(12)
                         
                         Button(action: {
+                            guard !listName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                                  !icon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                                return
+                            }
+                            
                             viewModel.addList(
                                 name: listName,
                                 description: listDescription,

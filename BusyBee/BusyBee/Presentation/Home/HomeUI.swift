@@ -8,15 +8,15 @@ struct HomeUI: View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
                 
-                
-                VStack(spacing: 20) {
-                    Greeting()
-                        .padding(.top, 25)
-                    WeatherCard()
-                    OverviewView()
-                    Spacer()
+                ScrollView {
+                    VStack(spacing: 20) {
+                        Greeting()
+                            .padding(.top, 25)
+                        WeatherCard()
+                        OverviewView()
+                    }
+                    .padding(.bottom, 40)
                 }
-                
                 
             }
         }
